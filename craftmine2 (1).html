@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CraftMine 2.0 - Minecraft 1.1 Replica</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Minecraftia', 'Courier New', monospace;
+            overflow: hidden;
+            background: #000;
+            image-rendering: pixelated;
+        }
+        
+        #game-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        #ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            image-rendering: pixelated;
+        }
+        
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        #crosshair::before {
+            top: 7px;
+            left: 0;
+            width: 16px;
+            height: 2px;
+        }
+        
+        #crosshair::after {
+            top: 0;
+            left: 7px;
+            width: 2px;
+            height: 16px;
+        }
+        
+        #stats {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
+        #hotbar {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 2px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 4px;
+            border-radius: 4px;
+            border: 3px solid #555;
+        }
+        
+        .hotbar-slot {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #373737;
+            background: #8b8b8b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+            transition: all 0.1s;
+            position: relative;
+            image-rendering: pixelated;
+        }
+        
+        .hotbar-slot.active {
+            border-color: #fff;
+            transform: scale(1.05);
+        }
+        
+        .hotbar-slot .block-icon {
+            width: 32px;
+            height: 32px;
+            image-rendering: pixelated;
+        }
+        
+        .hotbar-slot .slot-number {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 10px;
+            color: #fff;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        .hotbar-slot .item-count {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 12px;
+            color: #fff;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+        
+        #start-screen h1 {
+            color: #4CAF50;
+            font-size: 64px;
+            margin-bottom: 10px;
+            text-shadow: 4px 4px 0 #000, 6px 6px 0 #333;
+            font-family: 'Minecraftia', monospace;
+            letter-spacing: 4px;
+        }
+        
+        #start-screen .subtitle {
+            color: #aaa;
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        
+        #start-button {
+            background: linear-gradient(180deg, #5cb85c 0%, #449d44 100%);
+            color: #fff;
+            border: 4px solid #2d5a2d;
+            padding: 20px 80px;
+            font-size: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 #1a3a1a, 0 10px 20px rgba(0,0,0,0.4);
+            font-family: 'Minecraftia', monospace;
+            text-shadow: 2px 2px 0 #000;
+        }
+        
+        #start-button:hover {
+            background: linear-gradient(180deg, #6fcf6f 0%, #5cb85c 100%);
+            transform: translateY(-2px);
+        }
+        
+        #start-button:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #1a3a1a, 0 4px 10px rgba(0,0,0,0.4);
+        }
+        
+        #controls-info {
+            margin-top: 40px;
+            background: rgba(0,0,0,0.6);
+            padding: 20px 40px;
+            border-radius: 8px;
+            border: 3px solid #555;
+            color: #fff;
+        }
+        
+        #controls-info h3 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 0 #000;
+            font-size: 20px;
+        }
+        
+        #controls-info table {
+            border-collapse: collapse;
+        }
+        
+        #controls-info td {
+            padding: 6px 15px;
+            font-size: 14px;
+        }
+        
+        #controls-info td:first-child {
+            font-weight: bold;
+            color: #81C784;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+        
+        #loading h2 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #000;
+            font-family: 'Minecraftia', monospace;
+        }
+        
+        .loader {
+            border: 5px solid #333;
+            border-top: 5px solid #4CAF50;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #inventory {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            border: 4px solid #555;
+            pointer-events: auto;
+            display: none;
+        }
+        
+        #inventory.open {
+            display: block;
+        }
+        
+        #inventory h3 {
+            color: #fff;
+            margin-bottom: 15px;
+            text-align: center;
+            text-shadow: 2px 2px 0 #000;
+        }
+        
+        #inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 50px);
+            gap: 4px;
+        }
+        
+        .inventory-slot {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #373737;
+            background: #8b8b8b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        #crafting {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            border: 4px solid #555;
+            pointer-events: auto;
+            display: none;
+        }
+        
+        #crafting.open {
+            display: block;
+        }
+        
+        #crafting-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 60px);
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .crafting-slot {
+            width: 60px;
+            height: 60px;
+            border: 3px solid #373737;
+            background: #8b8b8b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #crafting-output {
+            width: 80px;
+            height: 80px;
+            border: 3px solid #4CAF50;
+            background: #8b8b8b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        #crafting-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        #crafting-arrow {
+            font-size: 40px;
+            color: #4CAF50;
+        }
+        
+        #recipes-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .recipe-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: rgba(255,255,255,0.1);
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .recipe-item:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        #health-bar {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 2px;
+        }
+        
+        .heart {
+            width: 20px;
+            height: 20px;
+            background: #ff0000;
+            clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 50% 85%, 20% 100%, 0% 35%);
+        }
+        
+        .heart.empty {
+            background: #333;
+        }
+        
+        #time-display {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 14px;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        #debug-info {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-family: monospace;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading">
+        <h2>⛏️ CraftMine 2.0 laden...</h2>
+        <div class="loader"></div>
+        <p style="color: #888; margin-top: 20px;">Genereren van wereld...</p>
+    </div>
+    
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <h1>⛏️ CraftMine 2.0</h1>
+        <p class="subtitle">Minecraft 1.1 Replica - Web Edition</p>
+        <button id="start-button">▶️ SPEL STARTEN</button>
+        
+        <div id="controls-info">
+            <h3>🎮 Besturing</h3>
+            <table>
+                <tr><td>WASD</td><td>Bewegen</td></tr>
+                <tr><td>SPATIE</td><td>Springen</td></tr>
+                <tr><td>SHIFT</td><td>Sneak / Langzamer lopen</td></tr>
+                <tr><td>MUIS</td><td>Rondkijken</td></tr>
+                <tr><td>LINKERMUIS</td><td>Block breken</td></tr>
+                <tr><td>RECHTERMUIS</td><td>Block plaatsen</td></tr>
+                <tr><td>1-9</td><td>Hotbar slot kiezen</td></tr>
+                <tr><td>E</td><td>Inventory openen</td></tr>
+                <tr><td>C</td><td>Crafting tafel</td></tr>
+                <tr><td>F3</td><td>Debug info</td></tr>
+                <tr><td>ESC</td><td>Pauze / Muis vrijgeven</td></tr>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Game Container -->
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+    </div>
+    
+    <!-- UI Overlay -->
+    <div id="ui-overlay" class="hidden">
+        <div id="crosshair"></div>
+        
+        <div id="stats">
+            FPS: <span id="fps-display">0</span>
+        </div>
+        
+        <div id="time-display">
+            ☀️ Dag <span id="time-value">0</span>%
+        </div>
+        
+        <div id="health-bar">
+            <div class="heart"></div>
+            <div class="heart"></div>
+            <div class="heart"></div>
+            <div class="heart"></div>
+            <div class="heart"></div>
+            <div class="heart"></div>
+            <div class="heart"></div>
+            <div class="heart"></div>
+            <div class="heart"></div>
+            <div class="heart"></div>
+        </div>
+        
+        <div id="hotbar">
+            <div class="hotbar-slot active" data-slot="0">
+                <span class="slot-number">1</span>
+                <span class="item-count">64</span>
+            </div>
+            <div class="hotbar-slot" data-slot="1">
+                <span class="slot-number">2</span>
+            </div>
+            <div class="hotbar-slot" data-slot="2">
+                <span class="slot-number">3</span>
+            </div>
+            <div class="hotbar-slot" data-slot="3">
+                <span class="slot-number">4</span>
+            </div>
+            <div class="hotbar-slot" data-slot="4">
+                <span class="slot-number">5</span>
+            </div>
+            <div class="hotbar-slot" data-slot="5">
+                <span class="slot-number">6</span>
+            </div>
+            <div class="hotbar-slot" data-slot="6">
+                <span class="slot-number">7</span>
+            </div>
+            <div class="hotbar-slot" data-slot="7">
+                <span class="slot-number">8</span>
+            </div>
+            <div class="hotbar-slot" data-slot="8">
+                <span class="slot-number">9</span>
+            </div>
+        </div>
+        
+        <div id="debug-info" class="hidden">
+            <div>XYZ: <span id="debug-xyz">0, 0, 0</span></div>
+            <div>Chunk: <span id="debug-chunk">0, 0</span></div>
+            <div>Blocks: <span id="debug-blocks">0</span></div>
+            <div>FPS: <span id="debug-fps">0</span></div>
+            <div>Biome: <span id="debug-biome">-</span></div>
+            <div>Render: <span id="debug-render">0</span>ms</div>
+            <div>Update: <span id="debug-update">0</span>ms</div>
+            <div>Chunks: <span id="debug-chunks">0</span></div>
+        </div>
+        
+        <!-- Inventory -->
+        <div id="inventory">
+            <h3>📦 Inventory</h3>
+            <div id="inventory-grid"></div>
+        </div>
+        
+        <!-- Crafting -->
+        <div id="crafting">
+            <h3>🔨 Crafting</h3>
+            <div id="crafting-container">
+                <div id="crafting-grid">
+                    <div class="crafting-slot" data-cx="0" data-cy="0"></div>
+                    <div class="crafting-slot" data-cx="1" data-cy="0"></div>
+                    <div class="crafting-slot" data-cx="0" data-cy="1"></div>
+                    <div class="crafting-slot" data-cx="1" data-cy="1"></div>
+                </div>
+                <div id="crafting-arrow">→</div>
+                <div id="crafting-output"></div>
+            </div>
+            <div id="recipes-list"></div>
+        </div>
+    </div>
+    
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Game Code -->
+    <script>
+    // =============================================================================
+    // CONFIGURATIE
+    // =============================================================================
+    const CONFIG = {
+        CHUNK_SIZE: 16,
+        CHUNK_HEIGHT: 64,
+        RENDER_DISTANCE: 5,
+        GRAVITY: 28,
+        JUMP_FORCE: 8.5,
+        WALK_SPEED: 4.3,
+        SNEAK_SPEED: 1.3,
+        REACH: 5,
+        MOUSE_SENSITIVITY: 0.002,
+        DAY_LENGTH: 1200,
+        BLOCK_SIZE: 1,
+        MAX_FRAMERATE: 60,
+        FACE_CULLING: true,
+        CHUNK_UPDATE_DELAY: 50
+    };
+    
+    // Block IDs
+    const BLOCKS = {
+        AIR: 0,
+        GRASS: 1,
+        DIRT: 2,
+        STONE: 3,
+        SAND: 4,
+        SNOW: 5,
+        WOOD: 6,
+        LEAVES: 7,
+        WATER: 8,
+        GRAVEL: 9,
+        CLAY: 10,
+        LOG: 11,
+        PLANKS: 12,
+        COBBLESTONE: 13,
+        BRICK: 14,
+        BOOKSHELF: 15,
+        MOSSY_COBBLESTONE: 16,
+        OBSIDIAN: 17,
+        TORCH: 18,
+        FLOWER_RED: 19,
+        FLOWER_YELLOW: 20,
+        TALL_GRASS: 21,
+        CACTUS: 22,
+        SUGAR_CANE: 23,
+        COAL_ORE: 24,
+        IRON_ORE: 25,
+        GOLD_ORE: 26,
+        DIAMOND_ORE: 27,
+        BEDROCK: 28,
+        GLASS: 29,
+        WOOL: 30
+    };
+    
+    // Block properties
+    const BLOCK_PROPS = {
+        [BLOCKS.GRASS]: { name: 'Grass', color: 0x5d9e36, topColor: 0x7cbb4f, solid: true },
+        [BLOCKS.DIRT]: { name: 'Dirt', color: 0x8b5a2b, solid: true },
+        [BLOCKS.STONE]: { name: 'Stone', color: 0x808080, solid: true },
+        [BLOCKS.SAND]: { name: 'Sand', color: 0xe8d99c, solid: true },
+        [BLOCKS.SNOW]: { name: 'Snow', color: 0xf8f8f8, solid: true },
+        [BLOCKS.WOOD]: { name: 'Wood', color: 0x6b4423, solid: true },
+        [BLOCKS.LEAVES]: { name: 'Leaves', color: 0x3a7a3a, solid: true, transparent: true },
+        [BLOCKS.WATER]: { name: 'Water', color: 0x3060a0, solid: false, transparent: true },
+        [BLOCKS.GRAVEL]: { name: 'Gravel', color: 0x8a8a8a, solid: true },
+        [BLOCKS.CLAY]: { name: 'Clay', color: 0xa0a0a0, solid: true },
+        [BLOCKS.LOG]: { name: 'Log', color: 0x5c3a21, solid: true },
+        [BLOCKS.PLANKS]: { name: 'Planks', color: 0xc4a86a, solid: true },
+        [BLOCKS.COBBLESTONE]: { name: 'Cobblestone', color: 0x5a5a5a, solid: true },
+        [BLOCKS.BRICK]: { name: 'Brick', color: 0x8b4513, solid: true },
+        [BLOCKS.BOOKSHELF]: { name: 'Bookshelf', color: 0x8b6f47, solid: true },
+        [BLOCKS.MOSSY_COBBLESTONE]: { name: 'Mossy Cobble', color: 0x5a6a5a, solid: true },
+        [BLOCKS.OBSIDIAN]: { name: 'Obsidian', color: 0x1a1a2e, solid: true },
+        [BLOCKS.TORCH]: { name: 'Torch', color: 0xffa500, solid: false, emissive: true },
+        [BLOCKS.FLOWER_RED]: { name: 'Poppy', color: 0xcc3333, solid: false },
+        [BLOCKS.FLOWER_YELLOW]: { name: 'Dandelion', color: 0xffcc00, solid: false },
+        [BLOCKS.TALL_GRASS]: { name: 'Tall Grass', color: 0x55aa55, solid: false },
+        [BLOCKS.CACTUS]: { name: 'Cactus', color: 0x2d6e32, solid: true },
+        [BLOCKS.SUGAR_CANE]: { name: 'Sugar Cane', color: 0x55aa55, solid: false },
+        [BLOCKS.COAL_ORE]: { name: 'Coal Ore', color: 0x3a3a3a, solid: true },
+        [BLOCKS.IRON_ORE]: { name: 'Iron Ore', color: 0xc4a882, solid: true },
+        [BLOCKS.GOLD_ORE]: { name: 'Gold Ore', color: 0xd4af37, solid: true },
+        [BLOCKS.DIAMOND_ORE]: { name: 'Diamond Ore', color: 0x5ce0d6, solid: true },
+        [BLOCKS.BEDROCK]: { name: 'Bedrock', color: 0x1a1a1a, solid: true },
+        [BLOCKS.GLASS]: { name: 'Glass', color: 0x88ccff, solid: true, transparent: true },
+        [BLOCKS.WOOL]: { name: 'Wool', color: 0xf0f0f0, solid: true }
+    };
+    
+    // Crafting recipes
+    const RECIPES = [
+        {
+            output: { block: BLOCKS.PLANKS, count: 4 },
+            pattern: [
+                [BLOCKS.LOG]
+            ]
+        },
+        {
+            output: { block: BLOCKS.COBBLESTONE, count: 1 },
+            pattern: [
+                [BLOCKS.STONE]
+            ]
+        },
+        {
+            output: { block: BLOCKS.BRICK, count: 1 },
+            pattern: [
+                [BLOCKS.CLAY, BLOCKS.CLAY],
+                [BLOCKS.CLAY, BLOCKS.CLAY]
+            ]
+        },
+        {
+            output: { block: BLOCKS.BOOKSHELF, count: 1 },
+            pattern: [
+                [BLOCKS.PLANKS, BLOCKS.PLANKS, BLOCKS.PLANKS],
+                [BLOCKS.WOOD, BLOCKS.WOOD, BLOCKS.WOOD],
+                [BLOCKS.PLANKS, BLOCKS.PLANKS, BLOCKS.PLANKS]
+            ]
+        },
+        {
+            output: { block: BLOCKS.TORCH, count: 4 },
+            pattern: [
+                [null, BLOCKS.COAL_ORE, null],
+                [null, BLOCKS.WOOD, null]
+            ]
+        },
+        {
+            output: { block: BLOCKS.GLASS, count: 1 },
+            pattern: [
+                [BLOCKS.SAND, BLOCKS.SAND, BLOCKS.SAND],
+                [BLOCKS.SAND, BLOCKS.SAND, BLOCKS.SAND],
+                [BLOCKS.SAND, BLOCKS.SAND, BLOCKS.SAND]
+            ]
+        }
+    ];
+    
+    // =============================================================================
+    // PERLIN NOISE IMPLEMENTATIE
+    // =============================================================================
+    class PerlinNoise {
+        constructor(seed = Math.random() * 10000) {
+            this.permutation = [];
+            for (let i = 0; i < 256; i++) {
+                this.permutation[i] = i;
+            }
+            
+            // Shuffle met seed
+            let n = seed;
+            for (let i = 255; i > 0; i--) {
+                const j = Math.floor(n % (i + 1));
+                [this.permutation[i], this.permutation[j]] = 
+                [this.permutation[j], this.permutation[i]];
+                n = (n * 16807) % 2147483647;
+            }
+            
+            this.permutation = [...this.permutation, ...this.permutation];
+        }
+        
+        fade(t) {
+            return t * t * t * (t * (t * 6 - 15) + 10);
+        }
+        
+        lerp(t, a, b) {
+            return a + t * (b - a);
+        }
+        
+        grad(hash, x, y) {
+            const h = hash & 7;
+            const u = h < 4 ? x : y;
+            const v = h < 4 ? y : x;
+            return ((h & 1) ? -u : u) + ((h & 2) ? -2 * v : 2 * v);
+        }
+        
+        noise2D(x, y) {
+            const xi = Math.floor(x) & 255;
+            const yi = Math.floor(y) & 255;
+            
+            const xf = x - Math.floor(x);
+            const yf = y - Math.floor(y);
+            
+            const u = this.fade(xf);
+            const v = this.fade(yf);
+            
+            const aa = this.permutation[this.permutation[xi] + yi];
+            const ab = this.permutation[this.permutation[xi] + yi + 1];
+            const ba = this.permutation[this.permutation[xi + 1] + yi];
+            const bb = this.permutation[this.permutation[xi + 1] + yi + 1];
+            
+            const x1 = this.lerp(u, this.grad(aa, xf, yf), this.grad(ba, xf - 1, yf));
+            const x2 = this.lerp(u, this.grad(ab, xf, yf - 1), this.grad(bb, xf - 1, yf - 1));
+            
+            return this.lerp(v, x1, x2);
+        }
+        
+        octaveNoise(x, y, octaves, persistence) {
+            let total = 0;
+            let frequency = 1;
+            let amplitude = 1;
+            let maxValue = 0;
+            
+            for (let i = 0; i < octaves; i++) {
+                total += this.noise2D(x * frequency, y * frequency) * amplitude;
+                maxValue += amplitude;
+                amplitude *= persistence;
+                frequency *= 2;
+            }
+            
+            return total / maxValue;
+        }
+    }
+    
+    // =============================================================================
+    // TEXTURE GENERATOR
+    // =============================================================================
+    class TextureGenerator {
+        static createBlockTexture(color, size = 16) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            const r = (color >> 16) & 0xFF;
+            const g = (color >> 8) & 0xFF;
+            const b = color & 0xFF;
+            
+            // Base color
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Add noise for texture
+            for (let i = 0; i < size * size * 0.3; i++) {
+                const x = Math.floor(Math.random() * size);
+                const y = Math.floor(Math.random() * size);
+                const variation = Math.floor(Math.random() * 40) - 20;
+                const nr = Math.max(0, Math.min(255, r + variation));
+                const ng = Math.max(0, Math.min(255, g + variation));
+                const nb = Math.max(0, Math.min(255, b + variation));
+                ctx.fillStyle = `rgb(${nr}, ${ng}, ${nb})`;
+                ctx.fillRect(x, y, 1, 1);
+            }
+            
+            return canvas;
+        }
+        
+        static createGrassTexture(topColor, sideColor, size = 16) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size * 3;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Top (grass)
+            ctx.fillStyle = `rgb(${(topColor >> 16) & 0xFF}, ${(topColor >> 8) & 0xFF}, ${topColor & 0xFF})`;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Add grass noise
+            for (let i = 0; i < size * size * 0.4; i++) {
+                const x = Math.floor(Math.random() * size);
+                const y = Math.floor(Math.random() * size);
+                ctx.fillStyle = `rgba(100, 180, 50, ${Math.random() * 0.5})`;
+                ctx.fillRect(x, y, 1, 1);
+            }
+            
+            // Side (dirt with grass top)
+            ctx.fillStyle = `rgb(${(sideColor >> 16) & 0xFF}, ${(sideColor >> 8) & 0xFF}, ${sideColor & 0xFF})`;
+            ctx.fillRect(size, 0, size, size);
+            
+            // Grass overlay on side
+            ctx.fillStyle = `rgb(${(topColor >> 16) & 0xFF}, ${(topColor >> 8) & 0xFF}, ${topColor & 0xFF})`;
+            for (let x = size; x < size * 2; x++) {
+                const grassHeight = Math.floor(Math.random() * 6) + 3;
+                ctx.fillRect(x, 0, 1, grassHeight);
+            }
+            
+            // Bottom (dirt)
+            ctx.fillStyle = `rgb(${(sideColor >> 16) & 0xFF}, ${(sideColor >> 8) & 0xFF}, ${sideColor & 0xFF})`;
+            ctx.fillRect(size * 2, 0, size, size);
+            
+            return canvas;
+        }
+        
+        static createLogTexture(barkColor, topColor, size = 16) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size * 2;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Side (bark)
+            ctx.fillStyle = `rgb(${(barkColor >> 16) & 0xFF}, ${(barkColor >> 8) & 0xFF}, ${barkColor & 0xFF})`;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Bark lines
+            ctx.strokeStyle = `rgb(${Math.max(0, (barkColor >> 16) & 0xFF - 30)}, ${Math.max(0, (barkColor >> 8) & 0xFF - 30)}, ${Math.max(0, barkColor & 0xFF - 30)})`;
+            for (let i = 0; i < 8; i++) {
+                const x = Math.floor(Math.random() * size);
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, size);
+                ctx.stroke();
+            }
+            
+            // Top (rings)
+            ctx.fillStyle = `rgb(${(topColor >> 16) & 0xFF}, ${(topColor >> 8) & 0xFF}, ${topColor & 0xFF})`;
+            ctx.fillRect(size, 0, size, size);
+            
+            // Tree rings
+            ctx.strokeStyle = `rgb(${Math.max(0, (topColor >> 16) & 0xFF - 20)}, ${Math.max(0, (topColor >> 8) & 0xFF - 20)}, ${Math.max(0, topColor & 0xFF - 20)})`;
+            ctx.lineWidth = 1;
+            for (let r = 2; r < size / 2; r += 3) {
+                ctx.beginPath();
+                ctx.arc(size + size/2, size/2, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            return canvas;
+        }
+        
+        static createLeavesTexture(color, size = 16) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            const r = (color >> 16) & 0xFF;
+            const g = (color >> 8) & 0xFF;
+            const b = color & 0xFF;
+            
+            // Base
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Leaf pattern
+            for (let i = 0; i < size * size * 0.5; i++) {
+                const x = Math.floor(Math.random() * size);
+                const y = Math.floor(Math.random() * size);
+                const variation = Math.floor(Math.random() * 50) - 25;
+                const nr = Math.max(0, Math.min(255, r + variation));
+                const ng = Math.max(0, Math.min(255, g + variation));
+                const nb = Math.max(0, Math.min(255, b + variation));
+                ctx.fillStyle = `rgb(${nr}, ${ng}, ${nb})`;
+                ctx.fillRect(x, y, 2, 2);
+            }
+            
+            return canvas;
+        }
+    }
+    
+    // =============================================================================
+    // INVENTORY SYSTEM
+    // =============================================================================
+    class Inventory {
+        constructor(size = 36) {
+            this.slots = new Array(size).fill(null);
+            this.selectedSlot = 0;
+        }
+        
+        addItem(blockType, count = 1) {
+            // Try to stack first
+            for (let i = 0; i < this.slots.length; i++) {
+                if (this.slots[i] && this.slots[i].block === blockType && this.slots[i].count < 64) {
+                    const canAdd = Math.min(64 - this.slots[i].count, count);
+                    this.slots[i].count += canAdd;
+                    count -= canAdd;
+                    if (count === 0) return true;
+                }
+            }
+            
+            // Add to empty slot
+            while (count > 0) {
+                const emptySlot = this.slots.findIndex(s => s === null);
+                if (emptySlot === -1) return false;
+                
+                const toAdd = Math.min(64, count);
+                this.slots[emptySlot] = { block: blockType, count: toAdd };
+                count -= toAdd;
+            }
+            return true;
+        }
+        
+        removeItem(slot, count = 1) {
+            if (!this.slots[slot]) return null;
+            
+            const removed = { ...this.slots[slot], count: Math.min(count, this.slots[slot].count) };
+            this.slots[slot].count -= removed.count;
+            if (this.slots[slot].count <= 0) {
+                this.slots[slot] = null;
+            }
+            return removed;
+        }
+        
+        getSlot(slot) {
+            return this.slots[slot];
+        }
+        
+        setSlot(slot, item) {
+            this.slots[slot] = item;
+        }
+    }
+    
+    // =============================================================================
+    // GAME CLASS
+    // =============================================================================
+    class CraftMineGame {
+        constructor() {
+            this.canvas = document.getElementById('game-canvas');
+            this.scene = null;
+            this.camera = null;
+            this.renderer = null;
+            this.chunks = new Map();
+            this.blocks = new Map();
+            this.noise = new PerlinNoise(42);
+            this.biomeNoise = new PerlinNoise(1337);
+            
+            this.player = {
+                position: new THREE.Vector3(0, 40, 0),
+                velocity: new THREE.Vector3(0, 0, 0),
+                yaw: 0,
+                pitch: 0,
+                onGround: false,
+                health: 10,
+                maxHealth: 10
+            };
+            
+            this.keys = {};
+            this.inventory = new Inventory();
+            this.selectedSlot = 0;
+            this.isLocked = false;
+            this.lastTime = performance.now();
+            this.frameCount = 0;
+            this.fps = 0;
+            this.dayTime = 0;
+            this.showDebug = false;
+            this.chunkUpdateQueue = [];
+            this.lastChunkUpdate = 0;
+            this.throttledUpdates = new Map();
+            
+            // Performance stats
+            this.stats = {
+                renderTime: 0,
+                updateTime: 0,
+                visibleFaces: 0,
+                drawCalls: 0
+            };
+            
+            // Preload textures
+            this.textures = {};
+            this.initTextures();
+            this.init();
+        }
+        
+        initTextures() {
+            // Generate textures for all blocks
+            Object.entries(BLOCK_PROPS).forEach(([id, props]) => {
+                if (id === BLOCKS.GRASS) {
+                    this.textures[id] = {
+                        top: TextureGenerator.createBlockTexture(props.topColor),
+                        side: TextureGenerator.createGrassTexture(props.topColor, props.color),
+                        bottom: TextureGenerator.createBlockTexture(0x8b5a2b)
+                    };
+                } else if (id === BLOCKS.LOG) {
+                    this.textures[id] = {
+                        top: TextureGenerator.createBlockTexture(0x8b6f47),
+                        side: TextureGenerator.createLogTexture(props.color, 0x8b6f47)
+                    };
+                } else if (id === BLOCKS.LEAVES) {
+                    this.textures[id] = {
+                        all: TextureGenerator.createLeavesTexture(props.color)
+                    };
+                } else {
+                    this.textures[id] = {
+                        all: TextureGenerator.createBlockTexture(props.color)
+                    };
+                }
+            });
+        }
+        
+        init() {
+            // Scene
+            this.scene = new THREE.Scene();
+            this.scene.background = new THREE.Color(0x87ceeb);
+            this.scene.fog = new THREE.Fog(0x87ceeb, 60, 180);
+            
+            // Camera
+            this.camera = new THREE.PerspectiveCamera(
+                75, window.innerWidth / window.innerHeight, 0.1, 500
+            );
+            
+            // Renderer
+            this.renderer = new THREE.WebGLRenderer({ 
+                canvas: this.canvas,
+                antialias: false,
+                powerPreference: 'high-performance'
+            });
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+            this.renderer.shadowMap.enabled = false;
+            this.renderer.sortObjects = false;
+            
+            // Enable frustum culling
+            this.renderer.info.autoReset = false;
+            
+            // Licht - optimized
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            this.scene.add(ambientLight);
+            
+            this.sunLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            this.sunLight.position.set(100, 100, 50);
+            this.scene.add(this.sunLight);
+            
+            // Event listeners
+            this.setupEventListeners();
+            
+            // Initiele chunks laden
+            this.updateChunks(0, 0);
+            
+            // Setup inventory UI
+            this.setupInventoryUI();
+            this.setupCraftingUI();
+            
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+            }, 1500);
+        }
+        
+        setupInventoryUI() {
+            const grid = document.getElementById('inventory-grid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 27; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'inventory-slot';
+                slot.dataset.index = i;
+                grid.appendChild(slot);
+            }
+            
+            // Update hotbar
+            this.updateHotbar();
+        }
+        
+        setupCraftingUI() {
+            const recipesList = document.getElementById('recipes-list');
+            recipesList.innerHTML = '';
+            
+            RECIPES.forEach((recipe, index) => {
+                const item = document.createElement('div');
+                item.className = 'recipe-item';
+                item.innerHTML = `
+                    <span style="color: #4CAF50;">${BLOCK_PROPS[recipe.output.block]?.name || 'Unknown'}</span>
+                    <span style="color: #888;">x${recipe.output.count}</span>
+                `;
+                item.addEventListener('click', () => this.selectRecipe(index));
+                recipesList.appendChild(item);
+            });
+        }
+        
+        selectRecipe(index) {
+            const recipe = RECIPES[index];
+            const slots = document.querySelectorAll('.crafting-slot');
+            
+            // Clear slots
+            slots.forEach(slot => {
+                slot.innerHTML = '';
+                slot.dataset.block = '';
+            });
+            
+            // Fill pattern
+            recipe.pattern.forEach((row, y) => {
+                row.forEach((block, x) => {
+                    if (block !== null) {
+                        const slotIndex = y * 2 + x;
+                        if (slots[slotIndex]) {
+                            slots[slotIndex].dataset.block = block;
+                            slots[slotIndex].style.background = `#${BLOCK_PROPS[block]?.color.toString(16).padStart(6, '0')}`;
+                        }
+                    }
+                });
+            });
+            
+            // Show output
+            const output = document.getElementById('crafting-output');
+            output.style.background = `#${BLOCK_PROPS[recipe.output.block]?.color.toString(16).padStart(6, '0')}`;
+            output.dataset.block = recipe.output.block;
+            output.dataset.count = recipe.output.count;
+        }
+        
+        setupEventListeners() {
+            // Window resize
+            window.addEventListener('resize', () => {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            // Start button
+            document.getElementById('start-button').addEventListener('click', () => {
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('ui-overlay').classList.remove('hidden');
+                this.canvas.requestPointerLock();
+            });
+            
+            // Pointer lock
+            document.addEventListener('pointerlockchange', () => {
+                this.isLocked = document.pointerLockElement === this.canvas;
+            });
+            
+            // Mouse movement
+            document.addEventListener('mousemove', (e) => {
+                if (!this.isLocked) return;
+                
+                this.player.yaw -= e.movementX * CONFIG.MOUSE_SENSITIVITY;
+                this.player.pitch -= e.movementY * CONFIG.MOUSE_SENSITIVITY;
+                this.player.pitch = Math.max(-Math.PI / 2 + 0.1, 
+                                            Math.min(Math.PI / 2 - 0.1, this.player.pitch));
+            });
+            
+            // Keyboard
+            document.addEventListener('keydown', (e) => {
+                this.keys[e.code] = true;
+                
+                // Hotbar selectie
+                if (e.code >= 'Digit1' && e.code <= 'Digit9') {
+                    this.selectedSlot = parseInt(e.code.replace('Digit', '')) - 1;
+                    this.updateHotbar();
+                }
+                
+                // Inventory
+                if (e.code === 'KeyE' && this.isLocked) {
+                    document.getElementById('inventory').classList.toggle('open');
+                    document.exitPointerLock();
+                }
+                
+                // Crafting
+                if (e.code === 'KeyC' && this.isLocked) {
+                    document.getElementById('crafting').classList.toggle('open');
+                    document.exitPointerLock();
+                }
+                
+                // Debug
+                if (e.code === 'F3') {
+                    this.showDebug = !this.showDebug;
+                    document.getElementById('debug-info').classList.toggle('hidden', !this.showDebug);
+                }
+                
+                // ESC
+                if (e.code === 'Escape' && this.isLocked) {
+                    document.exitPointerLock();
+                    document.getElementById('inventory').classList.remove('open');
+                    document.getElementById('crafting').classList.remove('open');
+                }
+            });
+            
+            document.addEventListener('keyup', (e) => {
+                this.keys[e.code] = false;
+            });
+            
+            // Mouse clicks
+            this.canvas.addEventListener('click', () => {
+                if (!this.isLocked) {
+                    this.canvas.requestPointerLock();
+                }
+            });
+            
+            this.canvas.addEventListener('mousedown', (e) => {
+                if (!this.isLocked) return;
+                
+                if (e.button === 0) {
+                    this.removeBlock();
+                } else if (e.button === 2) {
+                    this.placeBlock();
+                }
+            });
+            
+            this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+        
+        updateHotbar() {
+            document.querySelectorAll('.hotbar-slot').forEach((slot, i) => {
+                slot.classList.toggle('active', i === this.selectedSlot);
+                
+                const item = this.inventory.getSlot(i);
+                const countSpan = slot.querySelector('.item-count');
+                
+                if (item) {
+                    const color = BLOCK_PROPS[item.block]?.color;
+                    slot.style.background = `#${color.toString(16).padStart(6, '0')}`;
+                    countSpan.textContent = item.count;
+                    countSpan.style.display = 'block';
+                } else {
+                    slot.style.background = '#8b8b8b';
+                    countSpan.style.display = 'none';
+                }
+            });
+            
+            // Update initial hotbar items
+            if (this.inventory.getSlot(0) === null) {
+                this.inventory.setSlot(0, { block: BLOCKS.DIRT, count: 64 });
+            }
+        }
+        
+        getChunkKey(cx, cz) {
+            return `${cx},${cz}`;
+        }
+        
+        getBlockKey(x, y, z) {
+            return `${x},${y},${z}`;
+        }
+        
+        getBiome(x, z) {
+            const biomeVal = this.biomeNoise.noise2D(x * 0.01, z * 0.01);
+            if (biomeVal < -0.3) return 'ocean';
+            if (biomeVal < -0.1) return 'beach';
+            if (biomeVal < 0.2) return 'plains';
+            if (biomeVal < 0.5) return 'forest';
+            return 'mountains';
+        }
+        
+        generateChunk(cx, cz) {
+            const chunkKey = this.getChunkKey(cx, cz);
+            if (this.chunks.has(chunkKey)) return;
+            
+            const chunkBlocks = [];
+            
+            for (let x = 0; x < CONFIG.CHUNK_SIZE; x++) {
+                for (let z = 0; z < CONFIG.CHUNK_SIZE; z++) {
+                    const worldX = cx * CONFIG.CHUNK_SIZE + x;
+                    const worldZ = cz * CONFIG.CHUNK_SIZE + z;
+                    
+                    const biome = this.getBiome(worldX, worldZ);
+                    
+                    // Height generation
+                    let heightNoise = this.noise.octaveNoise(
+                        worldX * 0.02, 
+                        worldZ * 0.02, 
+                        4, 
+                        0.5
+                    );
+                    
+                    let height = Math.floor(((heightNoise + 1) * 0.5) * 30) + 10;
+                    
+                    // Biome modifiers
+                    if (biome === 'ocean') height = Math.floor(height * 0.4);
+                    if (biome === 'beach') height = Math.floor(height * 0.6);
+                    if (biome === 'mountains') height = Math.floor(height * 1.5);
+                    
+                    for (let y = 0; y < Math.min(height, CONFIG.CHUNK_HEIGHT); y++) {
+                        let blockType = BLOCKS.AIR;
+                        
+                        // Bedrock
+                        if (y === 0) {
+                            blockType = BLOCKS.BEDROCK;
+                        } else if (y < height - 4) {
+                            // Stone layer with ores
+                            if (Math.random() < 0.02 && y < 20) {
+                                blockType = BLOCKS.COAL_ORE;
+                            } else if (Math.random() < 0.015 && y < 40) {
+                                blockType = BLOCKS.IRON_ORE;
+                            } else if (Math.random() < 0.008 && y < 30) {
+                                blockType = BLOCKS.GOLD_ORE;
+                            } else if (Math.random() < 0.005 && y < 15) {
+                                blockType = BLOCKS.DIAMOND_ORE;
+                            } else {
+                                blockType = BLOCKS.STONE;
+                            }
+                        } else if (y < height - 1) {
+                            blockType = BLOCKS.DIRT;
+                        } else if (y === height - 1) {
+                            // Surface block based on biome
+                            if (biome === 'beach' || (height < 12 && biome === 'ocean')) {
+                                blockType = BLOCKS.SAND;
+                            } else if (height > 35) {
+                                blockType = BLOCKS.SNOW;
+                            } else {
+                                blockType = BLOCKS.GRASS;
+                            }
+                        }
+                        
+                        if (blockType !== BLOCKS.AIR) {
+                            chunkBlocks.push({
+                                x: worldX,
+                                y: y,
+                                z: worldZ,
+                                type: blockType
+                            });
+                            
+                            this.blocks.set(
+                                this.getBlockKey(worldX, y, worldZ),
+                                { type: blockType }
+                            );
+                        }
+                    }
+                    
+                    // Generate trees in forest biome
+                    if (biome === 'forest' && Math.random() < 0.05) {
+                        this.generateTree(worldX, height, worldZ, chunkBlocks);
+                    }
+                    
+                    // Generate decorations
+                    if (biome === 'plains' && Math.random() < 0.1) {
+                        this.generateDecoration(worldX, height, worldZ, chunkBlocks);
+                    }
+                }
+            }
+            
+            this.chunks.set(chunkKey, { blocks: chunkBlocks, cx, cz });
+            this.renderChunk(chunkKey);
+        }
+        
+        generateTree(x, y, z, chunkBlocks) {
+            const treeHeight = Math.floor(Math.random() * 3) + 4;
+            
+            // Trunk
+            for (let ty = 0; ty < treeHeight; ty++) {
+                chunkBlocks.push({ x, y: y + ty, z, type: BLOCKS.LOG });
+                this.blocks.set(this.getBlockKey(x, y + ty, z), { type: BLOCKS.LOG });
+            }
+            
+            // Leaves
+            for (let lx = -2; lx <= 2; lx++) {
+                for (let lz = -2; lz <= 2; lz++) {
+                    for (let ly = treeHeight - 2; ly <= treeHeight + 1; ly++) {
+                        if (Math.abs(lx) + Math.abs(lz) + Math.abs(ly - treeHeight) < 4) {
+                            const leafX = x + lx;
+                            const leafY = y + ly;
+                            const leafZ = z + lz;
+                            
+                            if (!this.blocks.has(this.getBlockKey(leafX, leafY, leafZ))) {
+                                chunkBlocks.push({ x: leafX, y: leafY, z: leafZ, type: BLOCKS.LEAVES });
+                                this.blocks.set(this.getBlockKey(leafX, leafY, leafZ), { type: BLOCKS.LEAVES });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        generateDecoration(x, y, z, chunkBlocks) {
+            const decorType = Math.random();
+            let blockType;
+            
+            if (decorType < 0.4) {
+                blockType = BLOCKS.FLOWER_RED;
+            } else if (decorType < 0.7) {
+                blockType = BLOCKS.FLOWER_YELLOW;
+            } else {
+                blockType = BLOCKS.TALL_GRASS;
+            }
+            
+            chunkBlocks.push({ x, y: y + 1, z, type: blockType });
+            this.blocks.set(this.getBlockKey(x, y + 1, z), { type: blockType });
+        }
+        
+        // Check if block face is visible (face culling)
+        isFaceVisible(x, y, z, dx, dy, dz) {
+            const neighbor = this.blocks.get(this.getBlockKey(x + dx, y + dy, z + dz));
+            if (!neighbor) return true;
+            
+            const neighborProps = BLOCK_PROPS[neighbor.type];
+            if (!neighborProps) return true;
+            
+            // Transparent blocks don't block faces
+            if (neighborProps.transparent) return true;
+            if (!neighborProps.solid) return true;
+            
+            return false;
+        }
+        
+        // Generate optimized geometry for chunk (only visible faces)
+        generateChunkGeometry(chunk) {
+            const chunkBlocks = chunk.blocks;
+            if (chunkBlocks.length === 0) return null;
+            
+            // Group visible faces by block type and face direction
+            const geometryData = {};
+            
+            for (const block of chunkBlocks) {
+                const type = block.type;
+                const props = BLOCK_PROPS[type];
+                if (!props || !props.solid) continue;
+                
+                if (!geometryData[type]) {
+                    geometryData[type] = {
+                        positions: [],
+                        normals: [],
+                        uvs: [],
+                        indices: []
+                    };
+                }
+                
+                const data = geometryData[type];
+                const x = block.x, y = block.y, z = block.z;
+                
+                // Check all 6 faces
+                const faces = [
+                    { dir: [1, 0, 0], vertices: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]], normal: [1,0,0] },
+                    { dir: [-1, 0, 0], vertices: [[0,0,1],[0,1,1],[0,1,0],[0,0,0]], normal: [-1,0,0] },
+                    { dir: [0, 1, 0], vertices: [[0,1,1],[1,1,1],[1,1,0],[0,1,0]], normal: [0,1,0] },
+                    { dir: [0, -1, 0], vertices: [[0,0,0],[1,0,0],[1,0,1],[0,0,1]], normal: [0,-1,0] },
+                    { dir: [0, 0, 1], vertices: [[0,0,1],[1,0,1],[1,1,1],[0,1,1]], normal: [0,0,1] },
+                    { dir: [0, 0, -1], vertices: [[1,0,0],[0,0,0],[0,1,0],[1,1,0]], normal: [0,0,-1] }
+                ];
+                
+                faces.forEach((face, faceIndex) => {
+                    if (!CONFIG.FACE_CULLING || this.isFaceVisible(x, y, z, face.dir[0], face.dir[1], face.dir[2])) {
+                        const baseIndex = data.positions.length / 3;
+                        
+                        face.vertices.forEach(v => {
+                            data.positions.push(x + v[0], y + v[1], z + v[2]);
+                            data.normals.push(...face.normal);
+                            data.uvs.push(v[0], v[1]);
+                        });
+                        
+                        data.indices.push(
+                            baseIndex, baseIndex + 1, baseIndex + 2,
+                            baseIndex, baseIndex + 2, baseIndex + 3
+                        );
+                    }
+                });
+            }
+            
+            return geometryData;
+        }
+        
+        renderChunk(chunkKey) {
+            const chunk = this.chunks.get(chunkKey);
+            if (!chunk) return;
+            
+            // Remove old mesh
+            if (chunk.mesh) {
+                this.scene.remove(chunk.mesh);
+                chunk.mesh.traverse(obj => {
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) {
+                        if (Array.isArray(obj.material)) {
+                            obj.material.forEach(m => m.dispose());
+                        } else {
+                            obj.material.dispose();
+                        }
+                    }
+                });
+            }
+            
+            const chunkGroup = new THREE.Group();
+            const geometryData = this.generateChunkGeometry(chunk);
+            
+            if (!geometryData) {
+                chunk.mesh = chunkGroup;
+                this.scene.add(chunkGroup);
+                return;
+            }
+            
+            // Create optimized meshes per block type
+            Object.entries(geometryData).forEach(([type, data]) => {
+                if (data.positions.length === 0) return;
+                
+                const props = BLOCK_PROPS[parseInt(type)];
+                if (!props) return;
+                
+                // Create geometry
+                const geometry = new THREE.BufferGeometry();
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(data.positions, 3));
+                geometry.setAttribute('normal', new THREE.Float32BufferAttribute(data.normals, 3));
+                geometry.setAttribute('uv', new THREE.Float32BufferAttribute(data.uvs, 2));
+                geometry.setIndex(data.indices);
+                
+                // Create material
+                const material = new THREE.MeshLambertMaterial({
+                    color: props.color,
+                    transparent: props.transparent || false,
+                    opacity: props.transparent ? 0.8 : 1,
+                    side: THREE.FrontSide
+                });
+                
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.frustumCulled = true;
+                chunkGroup.add(mesh);
+            });
+            
+            chunk.mesh = chunkGroup;
+            this.scene.add(chunkGroup);
+            
+            // Store geometry for cleanup
+            chunk.geometryData = geometryData;
+        }
+        
+        updateChunks(playerX, playerZ) {
+            const playerChunkX = Math.floor(playerX / CONFIG.CHUNK_SIZE);
+            const playerChunkZ = Math.floor(playerZ / CONFIG.CHUNK_SIZE);
+            
+            // Throttle chunk updates
+            const now = performance.now();
+            if (now - this.lastChunkUpdate < CONFIG.CHUNK_UPDATE_DELAY) {
+                return;
+            }
+            this.lastChunkUpdate = now;
+            
+            // Calculate distance to all chunks and sort
+            const chunkDistances = [];
+            this.chunks.forEach((chunk, key) => {
+                const dx = chunk.cx - playerChunkX;
+                const dz = chunk.cz - playerChunkZ;
+                chunkDistances.push({ key, dist: dx * dx + dz * dz });
+            });
+            chunkDistances.sort((a, b) => a.dist - b.dist);
+            
+            // Remove far chunks (process max 2 per frame)
+            let removed = 0;
+            for (let i = CONFIG.RENDER_DISTANCE * 2; i < chunkDistances.length && removed < 2; i++) {
+                const key = chunkDistances[i].key;
+                const chunk = this.chunks.get(key);
+                if (chunk && chunk.mesh) {
+                    this.scene.remove(chunk.mesh);
+                    // Dispose geometry and materials
+                    chunk.mesh.traverse(obj => {
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) {
+                                obj.material.forEach(m => m.dispose());
+                            } else {
+                                obj.material.dispose();
+                            }
+                        }
+                    });
+                }
+                this.chunks.delete(key);
+                removed++;
+            }
+            
+            // Load new chunks (process max 2 per frame)
+            let loaded = 0;
+            for (let dx = -CONFIG.RENDER_DISTANCE; dx <= CONFIG.RENDER_DISTANCE && loaded < 2; dx++) {
+                for (let dz = -CONFIG.RENDER_DISTANCE; dz <= CONFIG.RENDER_DISTANCE && loaded < 2; dz++) {
+                    const cx = playerChunkX + dx;
+                    const cz = playerChunkZ + dz;
+                    const key = this.getChunkKey(cx, cz);
+                    
+                    if (!this.chunks.has(key)) {
+                        this.generateChunk(cx, cz);
+                        loaded++;
+                    }
+                }
+            }
+        }
+        
+        raycast() {
+            const origin = this.player.position.clone();
+            const direction = new THREE.Vector3();
+            
+            direction.x = Math.cos(this.player.pitch) * Math.sin(this.player.yaw);
+            direction.y = Math.sin(this.player.pitch);
+            direction.z = Math.cos(this.player.pitch) * Math.cos(this.player.yaw);
+            direction.normalize();
+            
+            const step = 0.1;
+            let pos = origin.clone();
+            let lastPos = pos.clone();
+            
+            for (let dist = 0; dist < CONFIG.REACH; dist += step) {
+                pos.copy(origin).add(direction.clone().multiplyScalar(dist));
+                
+                const bx = Math.floor(pos.x);
+                const by = Math.floor(pos.y);
+                const bz = Math.floor(pos.z);
+                
+                const block = this.blocks.get(this.getBlockKey(bx, by, bz));
+                if (block && BLOCK_PROPS[block.type]?.solid) {
+                    return {
+                        hit: { x: bx, y: by, z: bz },
+                        normal: this.calculateNormal(lastPos, pos)
+                    };
+                }
+                
+                lastPos.copy(pos);
+            }
+            
+            return null;
+        }
+        
+        calculateNormal(last, current) {
+            const diff = new THREE.Vector3().subVectors(current, last);
+            
+            const x = Math.abs(diff.x);
+            const y = Math.abs(diff.y);
+            const z = Math.abs(diff.z);
+            
+            if (x > y && x > z) {
+                return new THREE.Vector3(Math.sign(diff.x), 0, 0);
+            } else if (y > z) {
+                return new THREE.Vector3(0, Math.sign(diff.y), 0);
+            } else {
+                return new THREE.Vector3(0, 0, Math.sign(diff.z));
+            }
+        }
+        
+        removeBlock() {
+            const result = this.raycast();
+            if (result) {
+                const { x, y, z } = result.hit;
+                const block = this.blocks.get(this.getBlockKey(x, y, z));
+                
+                if (block && block.type !== BLOCKS.BEDROCK) {
+                    // Add to inventory
+                    this.inventory.addItem(block.type);
+                    this.updateHotbar();
+                    
+                    // Remove from world
+                    this.blocks.delete(this.getBlockKey(x, y, z));
+                    
+                    // Update chunk mesh
+                    const chunkKey = this.getChunkKey(
+                        Math.floor(x / CONFIG.CHUNK_SIZE),
+                        Math.floor(z / CONFIG.CHUNK_SIZE)
+                    );
+                    
+                    const chunk = this.chunks.get(chunkKey);
+                    if (chunk) {
+                        if (chunk.mesh) {
+                            this.scene.remove(chunk.mesh);
+                        }
+                        chunk.blocks = chunk.blocks.filter(
+                            b => !(b.x === x && b.y === y && b.z === z)
+                        );
+                        this.renderChunk(chunkKey);
+                    }
+                }
+            }
+        }
+        
+        placeBlock() {
+            const result = this.raycast();
+            if (result) {
+                const item = this.inventory.getSlot(this.selectedSlot);
+                if (!item || item.count <= 0) return;
+                
+                const nx = result.hit.x + Math.round(result.normal.x);
+                const ny = result.hit.y + Math.round(result.normal.y);
+                const nz = result.hit.z + Math.round(result.normal.z);
+                
+                // Don't place where player stands
+                const playerX = Math.floor(this.player.position.x);
+                const playerY = Math.floor(this.player.position.y);
+                const playerZ = Math.floor(this.player.position.z);
+                
+                if (Math.abs(nx - playerX) < 1 && 
+                    Math.abs(nz - playerZ) < 1 &&
+                    (ny === playerY || ny === playerY - 1)) {
+                    return;
+                }
+                
+                this.blocks.set(this.getBlockKey(nx, ny, nz), {
+                    type: item.block
+                });
+                
+                // Remove from inventory
+                this.inventory.removeItem(this.selectedSlot, 1);
+                this.updateHotbar();
+                
+                // Update chunk
+                const chunkKey = this.getChunkKey(
+                    Math.floor(nx / CONFIG.CHUNK_SIZE),
+                    Math.floor(nz / CONFIG.CHUNK_SIZE)
+                );
+                
+                const chunk = this.chunks.get(chunkKey);
+                if (chunk) {
+                    chunk.blocks.push({
+                        x: nx, y: ny, z: nz,
+                        type: item.block
+                    });
+                    
+                    if (chunk.mesh) {
+                        this.scene.remove(chunk.mesh);
+                    }
+                    this.renderChunk(chunkKey);
+                }
+            }
+        }
+        
+        update(deltaTime) {
+            // Camera rotation
+            this.camera.rotation.order = 'YXZ';
+            this.camera.rotation.y = this.player.yaw;
+            this.camera.rotation.x = this.player.pitch;
+            
+            // Movement
+            const isSneaking = this.keys['ShiftLeft'] || this.keys['ShiftRight'];
+            const moveSpeed = (isSneaking ? CONFIG.SNEAK_SPEED : CONFIG.WALK_SPEED) * deltaTime;
+            const direction = new THREE.Vector3();
+            
+            if (this.keys['KeyW']) {
+                direction.x += Math.sin(this.player.yaw);
+                direction.z += Math.cos(this.player.yaw);
+            }
+            if (this.keys['KeyS']) {
+                direction.x -= Math.sin(this.player.yaw);
+                direction.z -= Math.cos(this.player.yaw);
+            }
+            if (this.keys['KeyD']) {
+                direction.x += Math.cos(this.player.yaw);
+                direction.z -= Math.sin(this.player.yaw);
+            }
+            if (this.keys['KeyA']) {
+                direction.x -= Math.cos(this.player.yaw);
+                direction.z += Math.sin(this.player.yaw);
+            }
+            
+            if (direction.length() > 0) {
+                direction.normalize().multiplyScalar(moveSpeed);
+                this.player.position.x += direction.x;
+                this.player.position.z += direction.z;
+            }
+            
+            // Gravity and jumping
+            this.player.velocity.y -= CONFIG.GRAVITY * deltaTime;
+            
+            if ((this.keys['Space']) && this.player.onGround) {
+                this.player.velocity.y = CONFIG.JUMP_FORCE;
+                this.player.onGround = false;
+            }
+            
+            this.player.position.y += this.player.velocity.y * deltaTime;
+            
+            // Ground collision
+            const bx = Math.floor(this.player.position.x);
+            const by = Math.floor(this.player.position.y - 1.5);
+            const bz = Math.floor(this.player.position.z);
+            
+            if (this.blocks.has(this.getBlockKey(bx, by, bz))) {
+                this.player.position.y = by + 2.5;
+                this.player.velocity.y = 0;
+                this.player.onGround = true;
+            } else if (this.player.position.y < -10) {
+                this.player.position.set(0, 50, 0);
+                this.player.velocity.y = 0;
+            } else {
+                this.player.onGround = false;
+            }
+            
+            // Camera position
+            this.camera.position.copy(this.player.position);
+            this.camera.position.y += 1.6; // Eye height
+            
+            // Update chunks
+            this.updateChunks(this.player.position.x, this.player.position.z);
+            
+            // Day/night cycle
+            this.dayTime += deltaTime / CONFIG.DAY_LENGTH * 100;
+            if (this.dayTime >= 100) this.dayTime = 0;
+            this.updateDayNight();
+        }
+        
+        updateDayNight() {
+            const sunAngle = (this.dayTime / 100) * Math.PI * 2;
+            this.sunLight.position.x = Math.sin(sunAngle) * 100;
+            this.sunLight.position.y = Math.cos(sunAngle) * 100;
+            
+            // Sky color
+            const skyIntensity = Math.max(0.2, Math.cos(sunAngle));
+            this.scene.background.setHSL(0.6, 0.5, skyIntensity * 0.5);
+            this.scene.fog.color.copy(this.scene.background);
+            
+            // Update UI
+            document.getElementById('time-value').textContent = Math.floor(100 - this.dayTime);
+        }
+        
+        render() {
+            this.renderer.render(this.scene, this.camera);
+        }
+        
+        updateFPS() {
+            this.frameCount++;
+            const now = performance.now();
+            
+            if (now - this.lastTime >= 1000) {
+                this.fps = this.frameCount;
+                this.frameCount = 0;
+                this.lastTime = now;
+                
+                document.getElementById('fps-display').textContent = this.fps;
+                
+                // Calculate visible faces
+                let visibleFaces = 0;
+                this.chunks.forEach(chunk => {
+                    if (chunk.blocks) visibleFaces += chunk.blocks.length * 2.5; // Approximate
+                });
+                this.stats.visibleFaces = Math.floor(visibleFaces);
+                this.stats.drawCalls = this.renderer.info.render.calls;
+                
+                if (this.showDebug) {
+                    document.getElementById('debug-fps').textContent = this.fps;
+                    document.getElementById('debug-xyz').textContent = 
+                        `${Math.floor(this.player.position.x)}, ${Math.floor(this.player.position.y)}, ${Math.floor(this.player.position.z)}`;
+                    document.getElementById('debug-chunk').textContent = 
+                        `${Math.floor(this.player.position.x / CONFIG.CHUNK_SIZE)}, ${Math.floor(this.player.position.z / CONFIG.CHUNK_SIZE)}`;
+                    document.getElementById('debug-blocks').textContent = this.blocks.size;
+                    document.getElementById('debug-biome').textContent = 
+                        this.getBiome(Math.floor(this.player.position.x), Math.floor(this.player.position.z));
+                    document.getElementById('debug-render').textContent = this.stats.renderTime.toFixed(2);
+                    document.getElementById('debug-update').textContent = this.stats.updateTime.toFixed(2);
+                    document.getElementById('debug-chunks').textContent = this.chunks.size;
+                }
+            }
+        }
+        
+        animate() {
+            requestAnimationFrame(() => this.animate());
+            
+            const now = performance.now();
+            const deltaTime = Math.min((now - this.lastTime) / 1000, 0.1);
+            
+            const startTime = performance.now();
+            
+            if (this.isLocked) {
+                this.update(deltaTime);
+            }
+            
+            this.stats.updateTime = performance.now() - startTime;
+            
+            const renderStart = performance.now();
+            this.render();
+            this.stats.renderTime = performance.now() - renderStart;
+            
+            this.updateFPS();
+        }
+        
+        start() {
+            this.animate();
+        }
+    }
+    
+    // =============================================================================
+    // START GAME
+    // =============================================================================
+    let game;
+    
+    window.addEventListener('load', () => {
+        console.log('⛏️ CraftMine 2.0 - Minecraft 1.1 Replica');
+        console.log('Loading world...');
+        
+        game = new CraftMineGame();
+        game.start();
+        
+        console.log('✅ Ready! Click "SPEL STARTEN" to begin.');
+    });
+    </script>
+</body>
+</html>
