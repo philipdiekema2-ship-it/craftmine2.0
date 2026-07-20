@@ -427,42 +427,8 @@
             font-size: 11px;
             font-family: monospace;
             line-height: 1.4;
-        }
-    </style>
-</head>
-<body>
-    <!-- Loading Screen -->
-    <div id="loading">
-        <h2>⛏️ CraftMine 2.0 laden...</h2>
-        <div class="loader"></div>
-        <p style="color: #888; margin-top: 20px;">Genereren van wereld...</p>
-    </div>
     
-    <!-- Start Screen -->
-    <div id="start-screen">
-        <h1>⛏️ CraftMine 2.0</h1>
-        <p class="subtitle">Minecraft 1.1 Replica - Web Edition</p>
-        <button id="start-button">▶️ SPEL STARTEN</button>
-        
-        <div id="controls-info">
-            <h3>🎮 Besturing</h3>
-            <table>
-                <tr><td>WASD</td><td>Bewegen</td></tr>
-                <tr><td>SPATIE</td><td>Springen</td></tr>
-                <tr><td>SHIFT</td><td>Sneak / Langzamer lopen</td></tr>
-                <tr><td>MUIS</td><td>Rondkijken</td></tr>
-                <tr><td>LINKERMUIS</td><td>Block breken</td></tr>
-                <tr><td>RECHTERMUIS</td><td>Block plaatsen</td></tr>
-                <tr><td>1-9</td><td>Hotbar slot kiezen</td></tr>
-                <tr><td>E</td><td>Inventory openen</td></tr>
-                <tr><td>C</td><td>Crafting tafel</td></tr>
-                <tr><td>F3</td><td>Debug info</td></tr>
-                <tr><td>ESC</td><td>Pauze / Muis vrijgeven</td></tr>
-            </table>
-        </div>
-    </div>
-    
-    <!-- Game Container -->
+   
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
     </div>
@@ -536,13 +502,13 @@
         
         <!-- Inventory -->
         <div id="inventory">
-            <h3>📦 Inventory</h3>
-            <div id="inventory-grid"></div>
+         
+    <div id="inventory-grid"></div>
         </div>
         
         <!-- Crafting -->
         <div id="crafting">
-            <h3>🔨 Crafting</h3>
+            
             <div id="crafting-container">
                 <div id="crafting-grid">
                     <div class="crafting-slot" data-cx="0" data-cy="0"></div>
@@ -562,9 +528,7 @@
     
     <!-- Game Code -->
     <script>
-    // =============================================================================
-    // CONFIGURATIE
-    // =============================================================================
+   
     const CONFIG = {
         CHUNK_SIZE: 16,
         CHUNK_HEIGHT: 64,
@@ -649,132 +613,8 @@
         [BLOCKS.BEDROCK]: { name: 'Bedrock', color: 0x1a1a1a, solid: true },
         [BLOCKS.GLASS]: { name: 'Glass', color: 0x88ccff, solid: true, transparent: true },
         [BLOCKS.WOOL]: { name: 'Wool', color: 0xf0f0f0, solid: true }
-    };
-    
-    // Crafting recipes
-    const RECIPES = [
-        {
-            output: { block: BLOCKS.PLANKS, count: 4 },
-            pattern: [
-                [BLOCKS.LOG]
-            ]
-        },
-        {
-            output: { block: BLOCKS.COBBLESTONE, count: 1 },
-            pattern: [
-                [BLOCKS.STONE]
-            ]
-        },
-        {
-            output: { block: BLOCKS.BRICK, count: 1 },
-            pattern: [
-                [BLOCKS.CLAY, BLOCKS.CLAY],
-                [BLOCKS.CLAY, BLOCKS.CLAY]
-            ]
-        },
-        {
-            output: { block: BLOCKS.BOOKSHELF, count: 1 },
-            pattern: [
-                [BLOCKS.PLANKS, BLOCKS.PLANKS, BLOCKS.PLANKS],
-                [BLOCKS.WOOD, BLOCKS.WOOD, BLOCKS.WOOD],
-                [BLOCKS.PLANKS, BLOCKS.PLANKS, BLOCKS.PLANKS]
-            ]
-        },
-        {
-            output: { block: BLOCKS.TORCH, count: 4 },
-            pattern: [
-                [null, BLOCKS.COAL_ORE, null],
-                [null, BLOCKS.WOOD, null]
-            ]
-        },
-        {
-            output: { block: BLOCKS.GLASS, count: 1 },
-            pattern: [
-                [BLOCKS.SAND, BLOCKS.SAND, BLOCKS.SAND],
-                [BLOCKS.SAND, BLOCKS.SAND, BLOCKS.SAND],
-                [BLOCKS.SAND, BLOCKS.SAND, BLOCKS.SAND]
-            ]
-        }
-    ];
-    
-    // =============================================================================
-    // PERLIN NOISE IMPLEMENTATIE
-    // =============================================================================
-    class PerlinNoise {
-        constructor(seed = Math.random() * 10000) {
-            this.permutation = [];
-            for (let i = 0; i < 256; i++) {
-                this.permutation[i] = i;
-            }
-            
-            // Shuffle met seed
-            let n = seed;
-            for (let i = 255; i > 0; i--) {
-                const j = Math.floor(n % (i + 1));
-                [this.permutation[i], this.permutation[j]] = 
-                [this.permutation[j], this.permutation[i]];
-                n = (n * 16807) % 2147483647;
-            }
-            
-            this.permutation = [...this.permutation, ...this.permutation];
-        }
-        
-        fade(t) {
-            return t * t * t * (t * (t * 6 - 15) + 10);
-        }
-        
-        lerp(t, a, b) {
-            return a + t * (b - a);
-        }
-        
-        grad(hash, x, y) {
-            const h = hash & 7;
-            const u = h < 4 ? x : y;
-            const v = h < 4 ? y : x;
-            return ((h & 1) ? -u : u) + ((h & 2) ? -2 * v : 2 * v);
-        }
-        
-        noise2D(x, y) {
-            const xi = Math.floor(x) & 255;
-            const yi = Math.floor(y) & 255;
-            
-            const xf = x - Math.floor(x);
-            const yf = y - Math.floor(y);
-            
-            const u = this.fade(xf);
-            const v = this.fade(yf);
-            
-            const aa = this.permutation[this.permutation[xi] + yi];
-            const ab = this.permutation[this.permutation[xi] + yi + 1];
-            const ba = this.permutation[this.permutation[xi + 1] + yi];
-            const bb = this.permutation[this.permutation[xi + 1] + yi + 1];
-            
-            const x1 = this.lerp(u, this.grad(aa, xf, yf), this.grad(ba, xf - 1, yf));
-            const x2 = this.lerp(u, this.grad(ab, xf, yf - 1), this.grad(bb, xf - 1, yf - 1));
-            
-            return this.lerp(v, x1, x2);
-        }
-        
-        octaveNoise(x, y, octaves, persistence) {
-            let total = 0;
-            let frequency = 1;
-            let amplitude = 1;
-            let maxValue = 0;
-            
-            for (let i = 0; i < octaves; i++) {
-                total += this.noise2D(x * frequency, y * frequency) * amplitude;
-                maxValue += amplitude;
-                amplitude *= persistence;
-                frequency *= 2;
-            }
-            
-            return total / maxValue;
-        }
-    }
-    
-    // =============================================================================
-    // TEXTURE GENERATOR
-    // =============================================================================
+
+
     class TextureGenerator {
         static createBlockTexture(color, size = 16) {
             const canvas = document.createElement('canvas');
@@ -907,9 +747,7 @@
         }
     }
     
-    // =============================================================================
-    // INVENTORY SYSTEM
-    // =============================================================================
+    
     class Inventory {
         constructor(size = 36) {
             this.slots = new Array(size).fill(null);
@@ -959,9 +797,7 @@
         }
     }
     
-    // =============================================================================
-    // GAME CLASS
-    // =============================================================================
+    
     class CraftMineGame {
         constructor() {
             this.canvas = document.getElementById('game-canvas');
@@ -1890,19 +1726,7 @@
         }
     }
     
-    // =============================================================================
-    // START GAME
-    // =============================================================================
-    let game;
-    
-    window.addEventListener('load', () => {
-        console.log('⛏️ CraftMine 2.0 - Minecraft 1.1 Replica');
-        console.log('Loading world...');
-        
-        game = new CraftMineGame();
-        game.start();
-        
-        console.log('✅ Ready! Click "SPEL STARTEN" to begin.');
+   
     });
     </script>
 </body>
